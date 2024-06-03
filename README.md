@@ -16,6 +16,8 @@ python -m venv venv
 
 source venv/bin/activate
 
+pip -r requirements.txt
+
 flask run
 
 http://localhost:5000
