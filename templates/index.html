@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNIXFOR AI Assistant</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet"> <!-- Font Awesome -->
+    <!-- Favicon-->
+    <link rel="icon" type="image/x-icon" href="static/assets/favicon.ico" />
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+        .container {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+        }
+        .spinner-border {
+            display: none; /* Hide the spinner by default */
+        }
+        .fa-microphone {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container text-center">
+        <h1 class="mb-4">Ask questions to UNIXFOR's ( AI Bot )</h1>
+        
+        <div id="spinner" class="text-center mt-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+        <form action="/chat" method="post" id="chat-form" class="mt-4">
+            <div class="form-group">
+                <label for="prompt">Your question:</label>
+                <input type="text" class="form-control" id="prompt" name="prompt" required>
+                <br>
+                <div>
+                    <button type="button" class="btn btn-primary btn-lg ml-2" id="speech-to-text">
+                        <i class="fas fa-microphone"></i> Press to Speak
+                    </button>
+                    <button type="button" class="btn btn-info btn-lg ml-2" id="sample-questions" data-toggle="popover" title="Sample Questions" data-content="What is Total Care?<br>What is SmartNET?<br>What is TMA agent?<br>Who is Currently the CEO of Unixfor company?<br>Give me information about Unixfor smart card deposit kiosks?<br>Give me information about Passbook Update Kiosks?<br>Give me information about Unixfor Document Handling Kiosks?">
+                        What can you ask ( ? )
+                    </button>
+                </div>
+            </div>
+            <div id="loadingSpinner" class="spinner-border text-primary mt-3" role="status">
+                <span class="sr-only">Thinking...</span>
+            </div>
+        </form>
+    </div>
+
+    <!-- Include Bootstrap JavaScript library -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script to enable TTS and STT -->
+    <script>
+
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        document.getElementById('chat-form').addEventListener('submit', function() {
+            // Show spinner when form is submitted
+            document.getElementById('loadingSpinner').style.display = 'inline-block';
+        });
+
+        // Text-to-Speech function
+        function speak(text) {
+            const synth = window.speechSynthesis;
+            const utterance = new SpeechSynthesisUtterance(text);
+            synth.speak(utterance);
+        }
+
+        // Speak the response for each chat entry
+        const responseTexts = document.querySelectorAll('.response-text');
+        responseTexts.forEach(responseText => {
+            speak(responseText.innerText);
+        });
+
+        // Speech-to-Text function
+        const speechToTextButton = document.getElementById('speech-to-text');
+        speechToTextButton.addEventListener('click', function() {
+            window.speechSynthesis.cancel(); // Stop any ongoing speech
+            const recognition = new webkitSpeechRecognition(); // For Chrome
+            recognition.lang = 'en-US';
+            recognition.start();
+            loadingSpinner.style.display = 'inline-block'; // Show spinner when speech-to-text starts
+            recognition.onresult = function(event) {
+                const inputField = document.getElementById('prompt');
+                inputField.value = event.results[0][0].transcript;
+            };
+            // When speech-to-text ends, submit the form
+            recognition.onend = function() {
+                loadingSpinner.style.display = 'none';
+                document.getElementById('chat-form').submit();
+            };
+        });
+
+        // Initialize popover for sample questions button
+        $(document).ready(function(){
+            $('#sample-questions').popover({
+                trigger: 'focus',
+                html: true,
+                content: function () {
+                    return $(this).data('content');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

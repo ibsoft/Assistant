@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNIXFOR AI Assistant</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet"> <!-- Font Awesome -->
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+
+    <!-- Favicon-->
+    <link rel="icon" type="image/x-icon" href="static/assets/favicon.ico" />
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .card {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+        }
+        .chat-entry {
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .chat-entry:last-child {
+            border-bottom: none;
+        }
+        .spinner-border {
+            display: none; /* Hide the spinner by default */
+        }
+        /* Style the microphone icon */
+        .fa-microphone {
+            margin-right: 5px;
+        }
+        /* Style the "Go to Top" button */
+        #goToTopBtn {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 99;
+            font-size: 18px;
+            border: none;
+            outline: none;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            padding: 10px 15px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+        }
+        #goToTopBtn:hover {
+            background-color: #555;
+        }
+        #goToTopBtn i {
+            margin-left: 5px;
+        }
+        #spinner {
+            display: block; /* Show the spinner by default */
+        }
+        #spinner {
+            position: fixed;
+            display: block;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            text-align: center;
+            opacity: 0.7;
+            background-color: #fff;
+            z-index: 99;
+        }
+        #spinner-image {
+            position: absolute;
+            top: 100px;
+            left: 240px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4 text-center">Ask questions to UNIXFOR's ( AI Bot - Dolphin )</h1>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Answers Box
+                <button id="clear-history" class="btn btn-danger btn-sm">Clear</button>
+            </div>
+            <div class="card-body" id="chat-history">
+                {% if chat_history %}
+                    <div class="chat-entry" id="latest-response">
+                        <p><strong>{{ chat_history[-1]['sender'] }}:</strong> {{ chat_history[-1]['message'] }}</p>
+                        <p><strong>Response:</strong> <span class="response-text">{{ chat_history[-1]['response'] }}</span></p>
+              
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div id="spinner" class="text-center mt-3">
+            <div role="status">
+                <img id="loading-image" src="static/assets/spinner.gif" alt="Loading..." />
+                <span class="sr-only">Loading...</span>
+        </div>
+
+        </div>
+        <form action="/chat" method="post" id="chat-form" class="mt-4">
+            <div class="form-group">
+                <label for="prompt">Ask your question:</label>
+                <input type="text" class="form-control" id="prompt" name="prompt" required>
+                <br>
+            </div>
+            <button type="button" class="btn btn-primary btn-lg ml-2" id="speech-to-text">
+                <i class="fas fa-microphone"></i> Press to Speak
+            </button>
+            <div id="loadingSpinner" class="spinner-border text-primary mt-3" role="status">
+                <span class="sr-only">Listening...</span>
+            </div>
+        </form>
+    </div>
+
+    <!-- "Go to Top" button -->
+    <button id="goToTopBtn" onclick="goToTop()">
+        Go to Top <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script>
+    const speechToTextButton = document.getElementById('speech-to-text');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const spinner = document.getElementById('spinner');
+    const responseTextContainer = document.getElementById('latest-response');
+    let prevResponse = null;
+    let isSpeaking = false;
+    let utterance = null;
+
+    // Speak the latest response
+    function speakLatestResponse() {
+        if (responseTextContainer) {
+            const responseText = responseTextContainer.querySelector('.response-text');
+            if (responseText && responseText.innerText !== prevResponse) {
+                if (isSpeaking && utterance) {
+                    window.speechSynthesis.cancel();
+                    isSpeaking = false;
+                }
+                utterance = new SpeechSynthesisUtterance(responseText.innerText);
+                window.speechSynthesis.speak(utterance);
+                isSpeaking = true;
+                prevResponse = responseText.innerText;
+            }
+        }
+    }
+
+    // Call speakLatestResponse when the page is loaded
+    window.onload = function () {
+        speakLatestResponse();
+    };
+
+    speechToTextButton.addEventListener('click', function () {
+        if (isSpeaking && utterance) {
+            window.speechSynthesis.cancel();
+            isSpeaking = false;
+        }
+        const recognition = new webkitSpeechRecognition(); // For Chrome
+        recognition.lang = 'en-US';
+        recognition.start();
+        loadingSpinner.style.display = 'inline-block'; // Show spinner when speech-to-text starts
+        recognition.onresult = function (event) {
+            const inputField = document.getElementById('prompt');
+            inputField.value = event.results[0][0].transcript;
+        };
+        // When speech-to-text ends, hide the spinner
+        recognition.onend = function () {
+            loadingSpinner.style.display = 'none';
+            spinner.style.display = 'inline-block';
+            speakLatestResponse(); // Speak the latest response
+            document.getElementById('chat-form').submit();
+        };
+    });
+
+    document.getElementById('clear-history').addEventListener('click', function () {
+        // Clear the chat history
+        document.getElementById('chat-history').innerHTML = '';
+    });
+
+    // Show/hide the "Go to Top" button based on the scroll position
+    window.addEventListener('scroll', function () {
+        if (window.scrollY > 100) {
+            document.getElementById('goToTopBtn').style.display = 'block';
+        } else {
+            document.getElementById('goToTopBtn').style.display = 'none';
+        }
+    });
+
+    // Scroll to the top of the page when the button is clicked
+    function goToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.addEventListener('load', function () {
+        // Hide the spinner when the page is fully loaded
+        document.getElementById('spinner').style.display = 'none';
+    });
+    
+</script>
+
+
+</body>
+</html>
