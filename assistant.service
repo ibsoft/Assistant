@@ -1,0 +1,14 @@
+[Unit]
+Description=Unixfor AI Assistant service
+After=network.target
+
+[Service]
+User=root
+Group=www-data
+WorkingDirectory=/var/www/html/assistant
+Environment="PATH=/var/www/html/assistant/venv/bin"
+ExecStart=/var/www/html/assistant/venv/bin/gunicorn --workers 3 --timeout 300 --bind 0.0.0.0:7777 -m 007 wsgi:app
+
+[Install]
+WantedBy=multi-user.target
+
